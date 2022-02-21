@@ -159,7 +159,7 @@ const addEmployee = () => {
         },
         {
             type: "input",
-            message: "Job title", 
+            message: "Job title",
             name: "title"
         },
         {
@@ -168,36 +168,68 @@ const addEmployee = () => {
             name: "manager"
 
         }
-    ])
+    ]).then(data => {
+        const managerName = data.manager.replace(/\s/g, '');
+        let managerId = "";
+        db.query(`SELECT CONCAT(first_name, last_name) AS name, id from employee;`, (err, data) => {
+            if (err) throw err;
+            console.log(data)
+            const managerData = data;
 
+            for (const empManager of managerData) {
+                if (empManager.name.toLowerCase() === managerName.toLowerCase()) {
+                    managerId = empManager.id;
+                }
+                console.log(managerId)
+            }
+        })
+        const roleTitle = data.title;
+        let roleId = "";
+
+        db.query('SELECT id, title FROM role;', (err, data) => {
+            if (err) throw err;
+            console.log(data)
+            const roleData = data;
+
+            for(role of roleData) {
+                if (role.title.toLowerCase() === roleTitle.toLowerCase()) {
+                    roleId = role.id;
+                }
+                console.log(role.title)
+                console.log(roleId)
+            }
+            sendEmployee()
+        })
+
+        const sendEmployee = () => {
+            const sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES 
+            ("${data.first}", "${data.last}", ${roleId}, ${managerId});`;
+            db.query(sql, (err, data) => {
+                if (err) throw err;
+                console.table(data);
+                select();
+            });
+        }
+    });
 }
 
 const init = () => {
-    const department = "Shipping";
-    let deptId = ""
-    db.query(`SELECT name, id from department;`, (err, data) => {
+    const roleTitle = "accountant";
+    let roleId = "";
+
+    db.query('SELECT id, title FROM role;', (err, data) => {
         if (err) throw err;
         console.log(data)
-        const deptData = data;
-        console.log(deptData);
+        const roleData = data;
 
-        for (const dept of deptData) {
-            if (dept.name.toLowerCase() === department.toLowerCase()) {
-                deptId = dept.id;
+        for(role of roleData) {
+            if (role.title.toLowerCase() === roleTitle.toLowerCase()) {
+                roleId = role.id;
             }
-            console.log(deptId)
-            console.log(dept.name)
+            console.log(role.title)
+            console.log(roleId)
         }
     })
-
-    // deptData.forEach(data => {
-    //     if (data.name.toLowerCase() === department.toLowerCase()) {
-    //         deptId = data.id;
-    //     }
-    //     console.log(deptId)
-    // })
-
-
 }
 
 select();
