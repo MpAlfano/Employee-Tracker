@@ -84,13 +84,55 @@ const viewRoles = () => {
 }
 
 const addRole = () => {
+    inquirer.prompt([
+        {
+            type: "input",
+            message: "Job title",
+            name: "title"
+        },
+        {
+            type: "input",
+            message: "Salary",
+            name: "salary"
+        },
+        {
+            type: "input",
+            message: "Department",
+            name: "department"
+        }
+    ]).then(data => {
+        const department = data.department;
+        let deptId = "";
+        db.query(`SELECT name, id from department;`, (err, data) => {
+            if (err) throw err;
+            console.log(data)
+            const deptData = data;
+            console.log(deptData);
+
+            for (const dept of deptData) {
+                if (dept.name.toLowerCase() === department.toLowerCase()) {
+                    deptId = dept.id;
+                }
+                sendRole()
+            }
+        })
+
+        const sendRole = () => {
+            const sql = `INSERT INTO role (title, salary, department_id) VALUES ("${data.title}", ${data.salary}, ${deptId});`;
+            db.query(sql, (err, data) => {
+                if (err) throw err;
+                console.table(data);
+                select();
+            });
+        }
+    });
 
 }
 
 
 const viewEmployees = () => {
     const sql = `SELECT employee.id AS ID, employee.first_name AS First, employee.last_name AS Last, role.title AS Title,
-    department.name AS department, manager.first_name AS Managers, role.salary as Salary FROM employee 
+    department.name AS Department, CONCAT (manager.first_name, " ", manager.last_name) AS Manager, role.salary as Salary FROM employee 
     LEFT JOIN role ON employee.role_id = role.id
     LEFT JOIN department ON role.department_id = department.id
     LEFT JOIN employee manager ON employee.manager_id = manager.id
@@ -103,6 +145,61 @@ const viewEmployees = () => {
 }
 
 
+const addEmployee = () => {
+    inquirer.prompt([
+        {
+            type: "input",
+            message: "First name",
+            name: "first"
+        },
+        {
+            type: "input",
+            message: "Last name",
+            name: "last"
+        },
+        {
+            type: "input",
+            message: "Job title", 
+            name: "title"
+        },
+        {
+            type: "input",
+            message: "Manager name",
+            name: "manager"
 
+        }
+    ])
+
+}
+
+const init = () => {
+    const department = "Shipping";
+    let deptId = ""
+    db.query(`SELECT name, id from department;`, (err, data) => {
+        if (err) throw err;
+        console.log(data)
+        const deptData = data;
+        console.log(deptData);
+
+        for (const dept of deptData) {
+            if (dept.name.toLowerCase() === department.toLowerCase()) {
+                deptId = dept.id;
+            }
+            console.log(deptId)
+            console.log(dept.name)
+        }
+    })
+
+    // deptData.forEach(data => {
+    //     if (data.name.toLowerCase() === department.toLowerCase()) {
+    //         deptId = data.id;
+    //     }
+    //     console.log(deptId)
+    // })
+
+
+}
 
 select();
+// init();
+
