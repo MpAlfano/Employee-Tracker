@@ -1,6 +1,7 @@
 const inquirer = require('inquirer');
 const mysql = require('mysql2');
 const consoleTable = require('console.table');
+const { prompts } = require('inquirer');
 
 const PORT = process.env.PORT || 3001;
 
@@ -18,7 +19,6 @@ const db = mysql.createConnection(
     console.log(`Connected to the employee_db.`)
 );
 
-
 const select = () => {
     inquirer.prompt([
         {
@@ -26,7 +26,7 @@ const select = () => {
             name: "menu",
             message: "Select an option",
             choices: ["View all departments", "Add a department", "View all roles", "Add a role",
-                "View all employees", "Add an employee", "Update an employee role"]
+                "View all employees", "Add an employee", "Update an employee role", "Exit"]
         },
 
     ]).then((data) => {
@@ -45,6 +45,9 @@ const select = () => {
             return addEmployee();
         } else if (choice === "Update an employee role") {
             return updateRole();
+        } else if (choice === "Exit") {
+            console.log("Goodbye")
+            return inquirer.prompt().ui.close() // To exit out of the prompt menu
         };
     });
 };
@@ -63,7 +66,13 @@ const addDepartment = () => {
         {
             type: "input",
             message: "New department name",
-            name: "department"
+            name: "department",
+            validate: input => {
+                if (input) {
+                    return true;
+                }
+                return "Please enter a department name."
+            }
         }
     ]).then(data => {
         const newDepartment = data.department;
@@ -88,49 +97,54 @@ const viewRoles = () => {
 }
 
 const addRole = () => {
-    inquirer.prompt([
-        {
-            type: "input",
-            message: "Job title",
-            name: "title"
-        },
-        {
-            type: "input",
-            message: "Salary",
-            name: "salary"
-        },
-        {
-            type: "input",
-            message: "Department",
-            name: "department"
-        }
-    ]).then(data => {
-        const department = data.department;
-        let deptId = "";
-        db.query(`SELECT name, id from department;`, (err, data) => {
-            if (err) throw err;
-            console.log(data)
-            const deptData = data;
-            console.log(deptData);
-
-            for (const dept of deptData) {
-                if (dept.name.toLowerCase() === department.toLowerCase()) {
-                    deptId = dept.id;
+    const sql = `SELECT id, name from department;`;
+    db.query(sql, (err, data) => {
+        const departmentList = data.map(({ id, name }) => ({
+            name: name,
+            value: id
+        }));
+        inquirer.prompt([
+            {
+                type: "input",
+                message: "Job title",
+                name: "title",
+                validate: input => {
+                    if (isNaN(input)) {
+                        return true;
+                    }
+                    return "Please enter a role title.";
                 }
-            }
-            sendRole()
-        })
+            },
+            {
+                type: "number",
+                message: "Salary",
+                name: "salary",
+                // validate: input => {
+                //     if (isNaN(input)) {
+                //         return "Please enter only numbers."
+                //     }
+                //     return true;
+                // }
+            },
+            {
+                type: "list",
+                message: "Department",
+                name: "department",
+                choices: departmentList
 
-        const sendRole = () => {
+            }
+        ]).then(data => {
+            // console.log (data.salary)
+            let deptId = data.department;
+
             const sql = `INSERT INTO role (title, salary, department_id) VALUES ("${data.title}", ${data.salary}, ${deptId});`;
             db.query(sql, (err, data) => {
                 if (err) throw err;
                 console.table(data);
                 select();
             });
-        }
+        });
     });
-
 }
 
 
@@ -164,17 +178,35 @@ const addEmployee = () => {
             {
                 type: "input",
                 message: "First name",
-                name: "first"
+                name: "first",
+                validate: input => {
+                    if (isNaN(input)) {
+                        return true;
+                    }
+                    return "Please enter first name.";
+                }
             },
             {
                 type: "input",
                 message: "Last name",
-                name: "last"
+                name: "last",
+                validate: input => {
+                    if (isNaN(input)) {
+                        return true;
+                    }
+                    return "Please enter last name.";
+                }
             },
             {
                 type: "input",
                 message: "Job title",
-                name: "title"
+                name: "title",
+                validate: input => {
+                    if (isNaN(input)) {
+                        return true;
+                    }
+                    return "Please enter job title.";
+                }
             },
             {
                 type: "list",
@@ -255,14 +287,9 @@ const updateRole = () => {
                     }
                 ]).then((data) => {
                     roleUpdateId = data.role;
-                    console.log(data)
-                    console.log(data.role)
                     updateEmployee()
                 })
                 const updateEmployee = () => {
-                    console.log("3")
-                    console.log(roleUpdateId)
-                    console.log(employeeId)
                     const sqlUpdate = `UPDATE employee SET role_id = ${roleUpdateId} where id = ${employeeId};`;
                     db.query(sqlUpdate, (err, data) => {
                         if (err) throw err;
