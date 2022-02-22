@@ -146,70 +146,70 @@ const viewEmployees = () => {
 
 
 const addEmployee = () => {
-    inquirer.prompt([
-        {
-            type: "input",
-            message: "First name",
-            name: "first"
-        },
-        {
-            type: "input",
-            message: "Last name",
-            name: "last"
-        },
-        {
-            type: "input",
-            message: "Job title",
-            name: "title"
-        },
-        {
-            type: "input",
-            message: "Manager name",
-            name: "manager"
-
-        }
-    ]).then(data => {
-        const managerName = data.manager.replace(/\s/g, '');
-        let managerId = "";
-        db.query(`SELECT CONCAT(first_name, last_name) AS name, id from employee;`, (err, data) => {
-            if (err) throw err;
-            console.log(data)
-            const managerData = data;
-
-            for (const empManager of managerData) {
-                if (empManager.name.toLowerCase() === managerName.toLowerCase()) {
-                    managerId = empManager.id;
-                }
-                console.log(managerId)
-            }
+    const sql = `SELECT id, first_name, last_name from employee;`;
+    db.query(sql, (err, data) => {
+        const managerList = data.map(({ id, first_name, last_name }) => ({
+            name: first_name + " " + last_name,
+            value: id
+        }));
+        managerList.unshift({
+            name: "None",
+            value: null
         })
-        const roleTitle = data.title;
-        let roleId = "";
+        inquirer.prompt([
+            {
+                type: "input",
+                message: "First name",
+                name: "first"
+            },
+            {
+                type: "input",
+                message: "Last name",
+                name: "last"
+            },
+            {
+                type: "input",
+                message: "Job title",
+                name: "title"
+            },
+            {
+                type: "list",
+                message: "Choose manager name",
+                name: "manager",
+                choices: managerList
 
-        db.query('SELECT id, title FROM role;', (err, data) => {
-            if (err) throw err;
-            console.log(data)
-            const roleData = data;
-
-            for (role of roleData) {
-                if (role.title.toLowerCase() === roleTitle.toLowerCase()) {
-                    roleId = role.id;
-                }
-                console.log(role.title)
-                console.log(roleId)
             }
-            sendEmployee()
-        })
+        ]).then(data => {
+            let managerId = data.manager;
+            console.log(data.manager)
+            const roleTitle = data.title;
+            let roleId = "";
 
-        const sendEmployee = () => {
-            const sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES 
-            ("${data.first}", "${data.last}", ${roleId}, ${managerId});`;
-            db.query(sql, (err, data) => {
+            db.query('SELECT id, title FROM role;', (err, data) => {
                 if (err) throw err;
-                console.table(data);
-                select();
-            });
-        }
+                console.log(data)
+                const roleData = data;
+
+                for (const role of roleData) {
+                    if (role.title.toLowerCase() === roleTitle.toLowerCase()) {
+                        roleId = role.id;
+                    }
+                    console.log(role.title)
+                    console.log(roleId)
+                }
+                sendEmployee()
+            })
+
+            const sendEmployee = () => {
+                const sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES 
+            ("${data.first}", "${data.last}", ${roleId}, ${managerId});`;
+                db.query(sql, (err, data) => {
+                    if (err) throw err;
+                    console.table(data);
+                    select();
+                });
+            }
+        });
     });
 }
 
@@ -266,11 +266,11 @@ const updateRole = () => {
                         select();
                     })
                 }
-                
+
             })
         })
     })
-    
+
 
 }
 
