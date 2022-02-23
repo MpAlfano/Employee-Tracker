@@ -8,7 +8,6 @@
   * [DEPLOYMENT](#deployment)  
   * [USAGE](#usage)
   * [LICENSE](#license)  
-  * [TESTS](#tests)  
 
 
   ## Deployment
