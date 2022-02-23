@@ -119,12 +119,6 @@ const addRole = () => {
                 type: "number",
                 message: "Salary",
                 name: "salary",
-                // validate: input => {
-                //     if (isNaN(input)) {
-                //         return "Please enter only numbers."
-                //     }
-                //     return true;
-                // }
             },
             {
                 type: "list",
@@ -134,7 +128,6 @@ const addRole = () => {
 
             }
         ]).then(data => {
-            // console.log (data.salary)
             let deptId = data.department;
 
             const sql = `INSERT INTO role (title, salary, department_id) VALUES ("${data.title}", ${data.salary}, ${deptId});`;
@@ -164,90 +157,90 @@ const viewEmployees = () => {
 
 
 const addEmployee = () => {
-    const sql = `SELECT id, first_name, last_name from employee;`;
-    db.query(sql, (err, data) => {
-        const managerList = data.map(({ id, first_name, last_name }) => ({
-            name: first_name + " " + last_name,
-            value: id
-        }));
-        managerList.unshift({
-            name: "None",
-            value: null
-        })
-        inquirer.prompt([
-            {
-                type: "input",
-                message: "First name",
-                name: "first",
-                validate: input => {
-                    if (isNaN(input)) {
-                        return true;
-                    }
-                    return "Please enter first name.";
-                }
-            },
-            {
-                type: "input",
-                message: "Last name",
-                name: "last",
-                validate: input => {
-                    if (isNaN(input)) {
-                        return true;
-                    }
-                    return "Please enter last name.";
-                }
-            },
-            {
-                type: "input",
-                message: "Job title",
-                name: "title",
-                validate: input => {
-                    if (isNaN(input)) {
-                        return true;
-                    }
-                    return "Please enter job title.";
-                }
-            },
-            {
-                type: "list",
-                message: "Choose manager name",
-                name: "manager",
-                choices: managerList
 
+    inquirer.prompt([
+        {
+            type: "input",
+            message: "First name",
+            name: "first",
+            validate: input => {
+                if (isNaN(input)) {
+                    return true;
+                }
+                return "Please enter first name.";
             }
-        ]).then(data => {
-            let managerId = data.manager;
-            console.log(data.manager)
-            const roleTitle = data.title;
-            let roleId = "";
-
-            db.query('SELECT id, title FROM role;', (err, data) => {
-                if (err) throw err;
-                console.log(data)
-                const roleData = data;
-
-                for (const role of roleData) {
-                    if (role.title.toLowerCase() === roleTitle.toLowerCase()) {
-                        roleId = role.id;
-                    }
-                    console.log(role.title)
-                    console.log(roleId)
+        },
+        {
+            type: "input",
+            message: "Last name",
+            name: "last",
+            validate: input => {
+                if (isNaN(input)) {
+                    return true;
                 }
-                sendEmployee()
-            })
+                return "Please enter last name.";
+            }
+        },
+    ]).then((data) => {
+        const employeeCreate = [data.first, data.last];
+        const sql = `SELECT id, title FROM role;`;
 
-            const sendEmployee = () => {
-                const sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES 
-            ("${data.first}", "${data.last}", ${roleId}, ${managerId});`;
+        db.query(sql, (err, data) => {
+            if (err) throw err;
+            const roleList = data.map(({ id, title }) => ({
+                name: title,
+                value: id
+            }));
+            inquirer.prompt([
+
+                {
+                    type: "list",
+                    message: "Job title",
+                    name: "title",
+                    choices: roleList
+
+                },
+            ]).then((data => {
+                const title = data.title;
+                employeeCreate.push(title);
+
+                const sql = `SELECT id, first_name, last_name from employee;`;
                 db.query(sql, (err, data) => {
-                    if (err) throw err;
-                    console.table(data);
-                    select();
+                    managerList = data.map(({ id, first_name, last_name }) => ({
+                        name: first_name + " " + last_name,
+                        value: id
+                    }));
+                    managerList.unshift({
+                        name: "None",
+                        value: null
+                    });
+                    inquirer.prompt([
+                        {
+                            type: "list",
+                            message: "Choose manager name",
+                            name: "manager",
+                            choices: managerList
+
+                        }
+                    ]).then(data => {
+                        let managerId = data.manager;
+                        employeeCreate.push(managerId)
+
+                        const sql = `INSERT INTO employee (first_name, last_name, role_id, manager_id) 
+                            VALUES (?, ?, ?, ?);`
+                        db.query(sql, employeeCreate, (err, data) => {
+                            if (err) throw err;
+                            console.table(data);
+                            select();
+                        });
+                    });
                 });
-            }
+            }));
         });
     });
-}
+
+};
+
 
 
 const updateRole = () => {
@@ -258,7 +251,6 @@ const updateRole = () => {
             name: first_name + " " + last_name,
             value: id
         }));
-        console.log(employeeChoice)
         inquirer.prompt([
             {
                 type: "list",
@@ -269,15 +261,11 @@ const updateRole = () => {
         ]).then((data) => {
             let employeeId = "";
             let roleUpdateId = "";
-            console.log(data)
-            console.log(data.employee)
             employeeId = data.employee
 
-            console.log(employeeId)
             const sqlRole = `SELECT id, title FROM role;`;
             db.query(sqlRole, (err, data) => {
                 const roleChoice = data.map(({ title, id }) => ({ name: title, value: id }));
-                console.log(roleChoice)
                 inquirer.prompt([
                     {
                         type: "list",
